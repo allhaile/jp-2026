@@ -18,16 +18,14 @@ Open `index.html` in a browser. That’s it.
 
 ## Deploy to GitHub Pages
 
-With the GitHub CLI installed and authenticated (`gh auth login`), run from this folder:
+This repo deploys automatically via GitHub Actions. The workflow in
+`.github/workflows/deploy-pages.yml` runs on every push, enables Pages if it
+isn't already on, and publishes the site.
 
-```bash
-gh repo create japan-souvenirs --public --source=. --remote=origin --push
-gh api -X POST repos/{owner}/japan-souvenirs/pages -f "source[branch]=main" -f "source[path]=/"
-```
+Live URL: https://allhaile.github.io/jp-2026/
 
-Live URL: `https://[yourusername].github.io/japan-souvenirs`
-
-Pages can take a minute to go live after the first push.
+Pages can take a minute or two to go live after the first deploy. You can watch
+the run under the repo's **Actions** tab.
 
 ## Files
 

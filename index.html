@@ -90,7 +90,8 @@
 
   <div class="tabs">
     <button id="tabPeople" class="active">People</button>
-    <button id="tabItems">Items &amp; ideas</button>
+    <button id="tabIdeas">Gift ideas</button>
+    <button id="tabItems">Items</button>
   </div>
 
   <!-- PEOPLE VIEW -->
@@ -123,6 +124,18 @@
     </details>
   </div>
 
+  <!-- GIFT IDEAS VIEW -->
+  <div id="ideasView" class="hidden">
+    <div class="summary">
+      <div class="count"><span id="ideaTotal">0</span> gift ideas saved</div>
+    </div>
+    <div class="add-row">
+      <input id="ideaInput" type="text" placeholder="Add a gift idea" autocomplete="off">
+      <button id="addIdeaBtn">Add</button>
+    </div>
+    <div id="giftIdeaList"></div>
+  </div>
+
   <!-- ITEMS VIEW -->
   <div id="itemsView" class="hidden">
     <div class="summary">
@@ -145,7 +158,8 @@
   const I_STATUSES = ["Idea", "Bought", "Request"];
   const P_KEY = "souvenir-people";
   const I_KEY = "souvenir-items";
-  let people = [], items = [], view = "people";
+  const G_KEY = "souvenir-ideas";
+  let people = [], items = [], ideas = [], view = "people";
 
   function uid() { return Math.random().toString(36).slice(2, 9); }
   function loadKey(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } }
@@ -153,6 +167,7 @@
     try {
       localStorage.setItem(P_KEY, JSON.stringify(people));
       localStorage.setItem(I_KEY, JSON.stringify(items));
+      localStorage.setItem(G_KEY, JSON.stringify(ideas));
     } catch (e) {}
   }
   function escape(s) {
@@ -194,6 +209,33 @@
     document.getElementById("barfill").style.width = people.length ? (done / people.length * 100) + "%" : "0%";
   }
 
+  // GIFT IDEAS
+  function addIdea(text) {
+    text = text.trim(); if (!text) return;
+    ideas.push({ id: uid(), text, note: "" });
+    saveAll(); renderIdeas();
+  }
+  function renderIdeas() {
+    const list = document.getElementById("giftIdeaList");
+    list.innerHTML = ideas.length ? "" : '<div class="empty">No gift ideas yet. Add one above.</div>';
+    ideas.forEach(g => {
+      const card = document.createElement("div");
+      card.className = "item";
+      card.innerHTML = `
+        <div class="item-name">${escape(g.text)}</div>
+        <input class="who-input" placeholder="Note (optional)" value="${escape(g.note)}">
+        <div class="item-actions">
+          <button class="del">×</button>
+        </div>`;
+      card.querySelector(".who-input").addEventListener("input", e => { g.note = e.target.value; saveAll(); });
+      card.querySelector(".del").addEventListener("click", () => {
+        ideas = ideas.filter(x => x.id !== g.id); saveAll(); renderIdeas();
+      });
+      list.appendChild(card);
+    });
+    document.getElementById("ideaTotal").textContent = ideas.length;
+  }
+
   // ITEMS
   function addItem(text) {
     text = text.trim(); if (!text) return;
@@ -231,15 +273,19 @@
   function switchView(v) {
     view = v;
     document.getElementById("peopleView").classList.toggle("hidden", v !== "people");
+    document.getElementById("ideasView").classList.toggle("hidden", v !== "ideas");
     document.getElementById("itemsView").classList.toggle("hidden", v !== "items");
     document.getElementById("tabPeople").classList.toggle("active", v === "people");
+    document.getElementById("tabIdeas").classList.toggle("active", v === "ideas");
     document.getElementById("tabItems").classList.toggle("active", v === "items");
   }
 
   function copyText() {
     let out = "JAPAN SOUVENIRS\n\nPeople:\n";
     out += people.map(p => `- ${p.name}: ${p.gift || "(no idea yet)"} (${p.status})`).join("\n");
-    out += "\n\nItems & ideas:\n";
+    out += "\n\nGift ideas:\n";
+    out += ideas.map(g => `- ${g.text}${g.note ? " (" + g.note + ")" : ""}`).join("\n");
+    out += "\n\nItems:\n";
     out += items.map(i => `- ${i.text}${i.who ? " for " + i.who : ""} (${i.status})`).join("\n");
     navigator.clipboard.writeText(out).then(() => {
       const b = document.getElementById("copyBtn");
@@ -249,7 +295,12 @@
 
   // wiring
   document.getElementById("tabPeople").addEventListener("click", () => switchView("people"));
+  document.getElementById("tabIdeas").addEventListener("click", () => switchView("ideas"));
   document.getElementById("tabItems").addEventListener("click", () => switchView("items"));
+  document.getElementById("addIdeaBtn").addEventListener("click", () => {
+    const i = document.getElementById("ideaInput"); addIdea(i.value); i.value = ""; i.focus();
+  });
+  document.getElementById("ideaInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addIdeaBtn").click(); });
   document.getElementById("addPersonBtn").addEventListener("click", () => {
     const i = document.getElementById("nameInput"); addPerson(i.value); i.value = ""; i.focus();
   });
@@ -259,14 +310,16 @@
   });
   document.getElementById("itemInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addItemBtn").click(); });
   document.getElementById("copyBtn").addEventListener("click", copyText);
-  document.getElementById("printBtn").addEventListener("click", () => { document.getElementById("peopleView").classList.remove("hidden"); document.getElementById("itemsView").classList.remove("hidden"); window.print(); });
+  document.getElementById("printBtn").addEventListener("click", () => { document.getElementById("peopleView").classList.remove("hidden"); document.getElementById("ideasView").classList.remove("hidden"); document.getElementById("itemsView").classList.remove("hidden"); window.print(); });
 
   // init
   people = loadKey(P_KEY);
   items = loadKey(I_KEY);
+  ideas = loadKey(G_KEY);
   if (people.length === 0) people = [{ id: uid(), name: "Me", gift: "", status: "To buy", me: true }];
   saveAll();
   renderPeople();
+  renderIdeas();
   renderItems();
 </script>
 </body>

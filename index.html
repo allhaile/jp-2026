@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Japan Souvenir Tracker</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --ink: #1f1d1a;
+    --muted: #8a8378;
+    --line: #ece6dc;
+    --accent: #d6453a;
+    --done: #2e8b57;
+    --idea: #c9851f;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 16px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tabs button {
+    flex: 1; padding: 11px; font-weight: 600; font-size: 15px;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 12px;
+  }
+  .tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .summary {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  .summary .count { font-size: 18px; font-weight: 600; }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .bar > div { height: 100%; background: var(--done); width: 0%; transition: width .25s; }
+  .add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .add-row input {
+    flex: 1; padding: 13px 14px; font-size: 16px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink);
+  }
+  button { font-family: inherit; font-size: 15px; cursor: pointer; border: none; border-radius: 12px; }
+  .add-row button { background: var(--accent); color: #fff; padding: 0 18px; font-weight: 600; }
+  .person, .item {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .person.me { border-color: var(--accent); }
+  .person-name { font-weight: 600; font-size: 16px; }
+  .tag { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+  .gift-input, .who-input {
+    width: 100%; margin-top: 10px; padding: 11px 12px; font-size: 15px;
+    border: 1px solid var(--line); border-radius: 10px; background: #fdfcfa; color: var(--ink);
+  }
+  .person-actions, .item-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .status-btn {
+    flex: 1; padding: 11px; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .status-btn[data-s="To buy"], .status-btn[data-s="Idea"] { color: var(--idea); border-color: var(--idea); background: #fdf6e9; }
+  .status-btn[data-s="Bought"] { background: #eef7f1; color: var(--done); border-color: var(--done); }
+  .status-btn[data-s="Packed"] { background: #eef7f1; color: var(--done); border-color: var(--done); }
+  .status-btn[data-s="Request"] { background: #fff3f2; color: var(--accent); border-color: var(--accent); }
+  .item-name { font-weight: 600; font-size: 16px; }
+  .del { width: 46px; background: #fff; color: var(--muted); border: 1px solid var(--line); font-size: 18px; }
+  .ideas summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; }
+  .chip { background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 8px 12px; font-size: 13px; color: var(--ink); }
+  .chip small { color: var(--muted); }
+  .footer { display: flex; gap: 8px; margin-top: 18px; }
+  .footer button { flex: 1; padding: 13px; background: var(--card); border: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+  .empty { color: var(--muted); text-align: center; padding: 20px; font-size: 14px; }
+  .hidden { display: none; }
+  @media print {
+    .add-row, .footer, .del, .status-btn, .ideas, .chip, .tabs { display: none !important; }
+    .person-actions::after, .item-actions::after { content: attr(data-print); color: var(--muted); font-size: 13px; }
+    body { background: #fff; }
+    .hidden { display: block !important; }
+  }
+</style>
+</head>
+<body>
+  <h1>Japan Souvenir Tracker</h1>
+  <div class="sub">Everyone covered, nothing forgotten.</div>
+
+  <div class="tabs">
+    <button id="tabPeople" class="active">People</button>
+    <button id="tabItems">Items &amp; ideas</button>
+  </div>
+
+  <!-- PEOPLE VIEW -->
+  <div id="peopleView">
+    <div class="summary">
+      <div class="count"><span id="done">0</span>/<span id="total">0</span> people sorted</div>
+      <div class="bar"><div id="barfill"></div></div>
+    </div>
+    <div class="add-row">
+      <input id="nameInput" type="text" placeholder="Add a person" autocomplete="off">
+      <button id="addPersonBtn">Add</button>
+    </div>
+    <div id="list"></div>
+    <details class="ideas">
+      <summary>General gift ideas</summary>
+      <div class="chips">
+        <span class="chip">KitKats <small>cheap, bulk</small></span>
+        <span class="chip">Snack box <small>Don Quijote</small></span>
+        <span class="chip">Tenugui towels <small>flat</small></span>
+        <span class="chip">Furoshiki cloth <small>flat</small></span>
+        <span class="chip">Sheet masks <small>light</small></span>
+        <span class="chip">Stationery <small>Loft, Itoya</small></span>
+        <span class="chip">Folding fan <small>summer</small></span>
+        <span class="chip">Matcha tin</span>
+        <span class="chip">Sake / whisky <small>special</small></span>
+        <span class="chip">Ghibli / Sanrio <small>kids, fans</small></span>
+        <span class="chip">Chopsticks set</span>
+        <span class="chip">Incense</span>
+      </div>
+    </details>
+  </div>
+
+  <!-- ITEMS VIEW -->
+  <div id="itemsView" class="hidden">
+    <div class="summary">
+      <div class="count"><span id="boughtCount">0</span> bought · <span id="ideaCount">0</span> ideas · <span id="reqCount">0</span> requests</div>
+    </div>
+    <div class="add-row">
+      <input id="itemInput" type="text" placeholder="Add an item, idea, or request" autocomplete="off">
+      <button id="addItemBtn">Add</button>
+    </div>
+    <div id="itemList"></div>
+  </div>
+
+  <div class="footer">
+    <button id="copyBtn">Copy to text</button>
+    <button id="printBtn">Print</button>
+  </div>
+
+<script>
+  const P_STATUSES = ["To buy", "Bought", "Packed"];
+  const I_STATUSES = ["Idea", "Bought", "Request"];
+  const P_KEY = "souvenir-people";
+  const I_KEY = "souvenir-items";
+  let people = [], items = [], view = "people";
+
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+  function loadKey(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } }
+  function saveAll() {
+    try {
+      localStorage.setItem(P_KEY, JSON.stringify(people));
+      localStorage.setItem(I_KEY, JSON.stringify(items));
+    } catch (e) {}
+  }
+  function escape(s) {
+    return (s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  // PEOPLE
+  function addPerson(name) {
+    name = name.trim(); if (!name) return;
+    people.push({ id: uid(), name, gift: "", status: "To buy" });
+    saveAll(); renderPeople();
+  }
+  function renderPeople() {
+    const list = document.getElementById("list");
+    list.innerHTML = people.length ? "" : '<div class="empty">No one yet. Add people above.</div>';
+    people.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "person" + (p.me ? " me" : "");
+      card.innerHTML = `
+        <div class="person-name">${escape(p.name)}${p.me ? '<span class="tag">you</span>' : ''}</div>
+        <input class="gift-input" placeholder="Gift idea" value="${escape(p.gift)}">
+        <div class="person-actions" data-print="${p.status}">
+          <button class="status-btn" data-s="${p.status}">${p.status}</button>
+          <button class="del">×</button>
+        </div>`;
+      card.querySelector(".gift-input").addEventListener("input", e => { p.gift = e.target.value; saveAll(); });
+      card.querySelector(".status-btn").addEventListener("click", () => {
+        p.status = P_STATUSES[(P_STATUSES.indexOf(p.status) + 1) % P_STATUSES.length];
+        saveAll(); renderPeople();
+      });
+      card.querySelector(".del").addEventListener("click", () => {
+        people = people.filter(x => x.id !== p.id); saveAll(); renderPeople();
+      });
+      list.appendChild(card);
+    });
+    const done = people.filter(p => p.status !== "To buy").length;
+    document.getElementById("done").textContent = done;
+    document.getElementById("total").textContent = people.length;
+    document.getElementById("barfill").style.width = people.length ? (done / people.length * 100) + "%" : "0%";
+  }
+
+  // ITEMS
+  function addItem(text) {
+    text = text.trim(); if (!text) return;
+    items.push({ id: uid(), text, who: "", status: "Idea" });
+    saveAll(); renderItems();
+  }
+  function renderItems() {
+    const list = document.getElementById("itemList");
+    list.innerHTML = items.length ? "" : '<div class="empty">Nothing yet. Add ideas, items bought, or requests.</div>';
+    items.forEach(it => {
+      const card = document.createElement("div");
+      card.className = "item";
+      card.innerHTML = `
+        <div class="item-name">${escape(it.text)}</div>
+        <input class="who-input" placeholder="For who? (optional)" value="${escape(it.who)}">
+        <div class="item-actions" data-print="${it.status}">
+          <button class="status-btn" data-s="${it.status}">${it.status}</button>
+          <button class="del">×</button>
+        </div>`;
+      card.querySelector(".who-input").addEventListener("input", e => { it.who = e.target.value; saveAll(); });
+      card.querySelector(".status-btn").addEventListener("click", () => {
+        it.status = I_STATUSES[(I_STATUSES.indexOf(it.status) + 1) % I_STATUSES.length];
+        saveAll(); renderItems();
+      });
+      card.querySelector(".del").addEventListener("click", () => {
+        items = items.filter(x => x.id !== it.id); saveAll(); renderItems();
+      });
+      list.appendChild(card);
+    });
+    document.getElementById("boughtCount").textContent = items.filter(i => i.status === "Bought").length;
+    document.getElementById("ideaCount").textContent = items.filter(i => i.status === "Idea").length;
+    document.getElementById("reqCount").textContent = items.filter(i => i.status === "Request").length;
+  }
+
+  function switchView(v) {
+    view = v;
+    document.getElementById("peopleView").classList.toggle("hidden", v !== "people");
+    document.getElementById("itemsView").classList.toggle("hidden", v !== "items");
+    document.getElementById("tabPeople").classList.toggle("active", v === "people");
+    document.getElementById("tabItems").classList.toggle("active", v === "items");
+  }
+
+  function copyText() {
+    let out = "JAPAN SOUVENIRS\n\nPeople:\n";
+    out += people.map(p => `- ${p.name}: ${p.gift || "(no idea yet)"} (${p.status})`).join("\n");
+    out += "\n\nItems & ideas:\n";
+    out += items.map(i => `- ${i.text}${i.who ? " for " + i.who : ""} (${i.status})`).join("\n");
+    navigator.clipboard.writeText(out).then(() => {
+      const b = document.getElementById("copyBtn");
+      b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy to text", 1500);
+    });
+  }
+
+  // wiring
+  document.getElementById("tabPeople").addEventListener("click", () => switchView("people"));
+  document.getElementById("tabItems").addEventListener("click", () => switchView("items"));
+  document.getElementById("addPersonBtn").addEventListener("click", () => {
+    const i = document.getElementById("nameInput"); addPerson(i.value); i.value = ""; i.focus();
+  });
+  document.getElementById("nameInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addPersonBtn").click(); });
+  document.getElementById("addItemBtn").addEventListener("click", () => {
+    const i = document.getElementById("itemInput"); addItem(i.value); i.value = ""; i.focus();
+  });
+  document.getElementById("itemInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addItemBtn").click(); });
+  document.getElementById("copyBtn").addEventListener("click", copyText);
+  document.getElementById("printBtn").addEventListener("click", () => { document.getElementById("peopleView").classList.remove("hidden"); document.getElementById("itemsView").classList.remove("hidden"); window.print(); });
+
+  // init
+  people = loadKey(P_KEY);
+  items = loadKey(I_KEY);
+  if (people.length === 0) people = [{ id: uid(), name: "Me", gift: "", status: "To buy", me: true }];
+  saveAll();
+  renderPeople();
+  renderItems();
+</script>
+</body>
+</html>
